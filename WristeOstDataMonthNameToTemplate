@@ -1,0 +1,40 @@
+Sub WriteOstDataMonthNameToTemplate()
+    Dim ws As Worksheet
+    Dim matchedSheet As Worksheet
+    Dim matchCount As Integer
+    Dim sheetNameParts() As String
+    Dim monthName As String
+    Dim pattern As String
+    
+    pattern = "^.*_\d{4}_OST_Data$" ' Pattern to match monthName_year_OST_Data
+    matchCount = 0 ' Initialize count of matching sheets
+    
+    For Each ws In ThisWorkbook.Sheets
+        ' Check if the sheet name matches the pattern (case-insensitive)
+        If ws.Name Like "*_20##_OST_Data" Then
+
+            ' Check if this is the first match
+            If matchCount = 0 Then
+                Set matchedSheet = ws
+                matchCount = matchCount + 1
+            Else
+                ' If we find more than one match, show an error message and exit
+                MsgBox "Error: More than one OST_Data sheet found causing conflict.", vbCritical
+                Exit Sub
+            End If
+        End If
+    Next ws
+    
+    ' After iterating through all sheets
+    If matchCount = 1 Then
+        ' Extract the month name from the matched sheet and update the 'Template' sheet
+        sheetNameParts = Split(matchedSheet.Name, "_")
+        monthName = sheetNameParts(0)
+        
+        ThisWorkbook.Sheets("Template").Range("K7").value = monthName
+    ElseIf matchCount = 0 Then
+        ' If no matching sheets found, show an error message
+        MsgBox "Error: No OST_Data sheet found.", vbCritical
+    End If
+End Sub
+
