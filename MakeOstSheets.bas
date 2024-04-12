@@ -1,4 +1,4 @@
-Sub MakeOSTSheet()
+Sub MakeOSTSheets()
     Dim ws As Worksheet
     Dim newWsName As String
     Dim newWs As Worksheet

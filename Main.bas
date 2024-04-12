@@ -8,7 +8,7 @@ Sub aMain()
     
     MakeDataSheets.MakeDataSheets
     
-    MakeOstSheet.MakeOstSheet
+    MakeOstSheets.MakeOstSheets
     
     Placeholder.placeHolderSubName
     
