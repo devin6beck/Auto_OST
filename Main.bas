@@ -10,7 +10,7 @@ Sub aMain()
     
     MakeOstSheets.MakeOstSheets
     
-    Placeholder.placeHolderSubName
+    FindAndWriteToOstSheet.FindAndWriteToOstSheet
     
     ' Turn on screen updating and calculation settings
     Application.ScreenUpdating = True

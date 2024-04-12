@@ -1,5 +1,5 @@
 
-Sub Find()
+Sub FindAndWriteToOstSheet()
     Dim logSheet As Worksheet, infoSheet As Worksheet
     Dim ws As Worksheet
     Dim lastLogRow As Long, foundOST As Boolean
