@@ -77,9 +77,6 @@ Sub MakeDataSheets()
             End If
         Next i
         
-        ' Add extra data as described in the task
-        newWs.Cells(5, "A").value = "OCNAME for " & uniqueIndex
-        newWs.Cells(5, "K").value = uniqueIndex
     Next uniqueIndex
 
     Exit Sub
