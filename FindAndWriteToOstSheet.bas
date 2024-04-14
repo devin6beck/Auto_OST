@@ -79,59 +79,75 @@ Sub dataValuesToOstSheet(dataWs As Worksheet, ostWS As Worksheet)
     Dim i As Long
     Dim otcCodeCol As Integer, otcDescCol As Integer, otcDebitCol As Integer, otcCreditCol As Integer
     Dim otcCode As String, otcDesc As String
-    Dim sumTotal As Double, debitValue As Double, creditValue As Double
-    Dim count As Long
-
-    ' Find column indices
-    For i = 1 To dataWs.Cells(1, dataWs.Columns.count).End(xlToLeft).Column
-        If Left(dataWs.Cells(1, i).value, 6) = "OTCODE" Then otcCodeCol = i
-        If Left(dataWs.Cells(1, i).value, 9) = "OTDESCRIP" Then otcDescCol = i
-        If Left(dataWs.Cells(1, i).value, 7) = "OTDEBIT" Then otcDebitCol = i
-        If Left(dataWs.Cells(1, i).value, 8) = "OTCREDIT" Then otcCreditCol = i
-    Next i
-
-    ' Initialize sums and counts
+    Dim debitValue As Double, creditValue As Double
+    Dim deepCleanSum As Double, stayOverSum As Double, departureSum As Double, trashSum As Double
+    Dim deepCleanCount As Long, stayOverCount As Long, departureCount As Long, trashCount As Long
     Dim ohmcrfSum As Double, taxgrtSum As Double, incomeSum As Double, depclnSum As Double, ownlsbSum As Double
     Dim ohmcrfCount As Long, depclnCount As Long
 
+    ' Find column indices
+    For i = 1 To dataWs.Cells(1, dataWs.Columns.Count).End(xlToLeft).Column
+        Select Case True
+            Case Left(dataWs.Cells(1, i).Value, 6) = "OTCODE": otcCodeCol = i
+            Case Left(dataWs.Cells(1, i).Value, 9) = "OTDESCRIP": otcDescCol = i
+            Case Left(dataWs.Cells(1, i).Value, 7) = "OTDEBIT": otcDebitCol = i
+            Case Left(dataWs.Cells(1, i).Value, 8) = "OTCREDIT": otcCreditCol = i
+        End Select
+    Next i
+
     ' Process rows
-    lastRow = dataWs.Cells(dataWs.Rows.count, otcCodeCol).End(xlUp).Row
+    lastRow = dataWs.Cells(dataWs.Rows.Count, otcCodeCol).End(xlUp).Row
     For i = 2 To lastRow
-        otcCode = dataWs.Cells(i, otcCodeCol).value
-        otcDesc = dataWs.Cells(i, otcDescCol).value
-        debitValue = dataWs.Cells(i, otcDebitCol).value
-        creditValue = dataWs.Cells(i, otcCreditCol).value
+        otcCode = dataWs.Cells(i, otcCodeCol).Value
+        otcDesc = LCase(dataWs.Cells(i, otcDescCol).Value)
+        debitValue = dataWs.Cells(i, otcDebitCol).Value
+        creditValue = dataWs.Cells(i, otcCreditCol).Value
         
         Select Case otcCode
             Case "OHMCRF"
                 ohmcrfSum = ohmcrfSum + debitValue
-                ohmcrfCount = ohmcrfCount + 1 ' Adjust based on refunds if required
+                ohmcrfCount = ohmcrfCount + 1
             Case "TAXGRT"
                 taxgrtSum = taxgrtSum + debitValue
             Case "INCOME"
                 incomeSum = incomeSum + debitValue
             Case "DEPCLN"
                 depclnSum = depclnSum + debitValue
-                depclnCount = depclnCount + 1 ' Adjust based on refunds if required
+                depclnCount = depclnCount + 1
             Case "OWNLSB"
                 ownlsbSum = ownlsbSum + creditValue
-            Case Else
-                If otcCode <> "CLEAN" And otcCode <> "TNTCLN" And otcCode <> "STYCLN" And otcCode <> "DPPCLN" Then
-                    MsgBox "Unrecognized OTCODE found: " & otcCode
+            Case "CLEAN", "TNTCLN", "STYCLN", "DPPCLN"
+                If InStr(otcDesc, "stayover") > 0 Then
+                    stayOverSum = stayOverSum + debitValue
+                    stayOverCount = stayOverCount + 1
+                ElseIf InStr(otcDesc, "departure") > 0 Then
+                    departureSum = departureSum + debitValue
+                    departureCount = departureCount + 1
+                ElseIf InStr(otcDesc, "trash") > 0 Then
+                    trashSum = trashSum + debitValue
+                    trashCount = trashCount + 1
                 End If
+            Case Else
+                MsgBox "Unrecognized OTCODE found: " & otcCode
         End Select
     Next i
 
     ' Output results to ostWS
-    ostWS.Cells(15, 12).value = ohmcrfSum
-    ostWS.Cells(15, 4).value = ohmcrfCount
-    ostWS.Cells(40, 12).value = taxgrtSum
-    ostWS.Cells(10, 12).value = incomeSum
-    ostWS.Cells(33, 12).value = depclnSum
-    ostWS.Cells(33, 4).value = depclnCount
-    ostWS.Cells(10, 12).value = ownlsbSum
-
+    ostWS.Cells(31, 12).Value = stayOverSum       ' L31
+    ostWS.Cells(31, 4).Value = stayOverCount      ' D31
+    ostWS.Cells(33, 12).Value = departureSum      ' L33
+    ostWS.Cells(33, 4).Value = departureCount     ' D33
+    ostWS.Cells(30, 12).Value = trashSum          ' L30
+    ostWS.Cells(30, 4).Value = trashCount         ' D30
+    ' Additional outputs for other codes
+    ostWS.Cells(15, 12).Value = ohmcrfSum
+    ostWS.Cells(40, 12).Value = taxgrtSum
+    ostWS.Cells(10, 12).Value = incomeSum
+    ostWS.Cells(32, 12).Value = depclnSum
+    ostWS.Cells(32, 4).Value = depclnCount
+    ostWS.Cells(10, 12).Value = ownlsbSum
 End Sub
+
 
 Function IsInArray(valToBeFound As Variant, arr As Variant) As Boolean
     IsInArray = Not IsError(Application.Match(valToBeFound, arr, 0))
