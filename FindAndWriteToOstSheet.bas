@@ -136,11 +136,5 @@ End Sub
 Function IsInArray(valToBeFound As Variant, arr As Variant) As Boolean
     IsInArray = Not IsError(Application.Match(valToBeFound, arr, 0))
 End Function
-Function KeyExists(collection As collection, key As Variant) As Boolean
-    Dim obj As Variant
-    On Error Resume Next
-    obj = collection(key)
-    KeyExists = (Err.Number = 0)
-    On Error GoTo 0
-End Function
+
 
