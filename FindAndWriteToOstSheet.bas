@@ -1,9 +1,10 @@
+
 Sub FindAndWriteToOstSheet()
     On Error GoTo ErrorHandler
     Dim infoSheet As Worksheet, ostWS As Worksheet, codesSheet As Worksheet
     Dim ws As Worksheet
     Dim foundOST As Boolean
-    Dim dataSheetName As String, ostSheetName As String, unitNumber As String
+    Dim dataSheetName As String, ostSheetName As String, otOwn As String
     
     Set infoSheet = ThisWorkbook.Sheets("Info")
     Set codesSheet = ThisWorkbook.Sheets("Codes")
@@ -11,15 +12,15 @@ Sub FindAndWriteToOstSheet()
     For Each ws In ThisWorkbook.Sheets
         If ws.Name Like "* Data" And Not ws.Name Like "*_Data" Then
             dataSheetName = ws.Name
-            unitNumber = Left(dataSheetName, InStr(dataSheetName, " Data") - 1)
+            otOwn = Left(dataSheetName, InStr(dataSheetName, " Data") - 1)  ' Changed from unitNumber to otOwn
             ostSheetName = Replace(dataSheetName, " Data", " OST")
             foundOST = SheetExists(ostSheetName)
-            MsgBox "unitNumber is: " & unitNumber
+            MsgBox "Owner Contract is: " & otOwn  ' Updated message text
             If foundOST Then
                 Set ostWS = ThisWorkbook.Sheets(ostSheetName)
                 If Not ostWS Is Nothing Then
                     ostWS.Range("A1").value = "Found " & ostSheetName
-                    InfoValuesToOstSheet ostWS, unitNumber
+                    InfoValuesToOstSheet ostWS, otOwn  ' Changed argument from unitNumber to otOwn
                     dataValuesToOstSheet ws, ostWS
                 End If
             Else
@@ -28,6 +29,7 @@ Sub FindAndWriteToOstSheet()
         End If
     Next ws
     Exit Sub
+
 ErrorHandler:
     MsgBox "An error occurred: " & Err.Description
 End Sub
@@ -39,8 +41,7 @@ Function SheetExists(sheetName As String) As Boolean
     On Error GoTo 0
     SheetExists = Not ws Is Nothing
 End Function
-
-Sub InfoValuesToOstSheet(ostWS As Worksheet, unitNum As String)
+Sub InfoValuesToOstSheet(ostWS As Worksheet, otOwn As String)
     Dim infoWS As Worksheet
     Set infoWS = ThisWorkbook.Sheets("Info")
     
@@ -50,10 +51,10 @@ Sub InfoValuesToOstSheet(ostWS As Worksheet, unitNum As String)
     Dim matchRow As Long
     matchRow = 0 ' Initialize with 0 to denote no match found initially
     
-    ' Loop through column A to find the matching unitNum
+    ' Loop through column A to find the matching otOwn
     Dim i As Long
     For i = 1 To lastRow
-        If infoWS.Cells(i, 1).value = unitNum Then
+        If infoWS.Cells(i, 8).value = otOwn Then
             matchRow = i
             Exit For
         End If
@@ -61,7 +62,7 @@ Sub InfoValuesToOstSheet(ostWS As Worksheet, unitNum As String)
     
     ' Check if a matching row was found
     If matchRow = 0 Then
-        MsgBox "No unitNum for " & unitNum & " was found in the Unit column of the Info Sheet", vbInformation
+        MsgBox "No otOwn for " & otOwn & " was found in the Contract column of the Info Sheet", vbInformation
     Else
         ' Move values from Info sheet to ostWS as specified
         ostWS.Cells(1, 1).value = infoWS.Cells(matchRow, 2).value ' Column B to Cell A1
@@ -69,41 +70,35 @@ Sub InfoValuesToOstSheet(ostWS As Worksheet, unitNum As String)
         ostWS.Cells(3, 1).value = infoWS.Cells(matchRow, 4).value ' Column D to Cell A3
         ostWS.Cells(4, 1).value = infoWS.Cells(matchRow, 5).value ' Column E to Cell A4
         ostWS.Cells(5, 1).value = infoWS.Cells(matchRow, 6).value ' Column F to Cell A5
-        ostWS.Cells(4, 12).value = infoWS.Cells(matchRow, 4).value ' Column D to Cell K4
+        ostWS.Cells(4, 12).value = infoWS.Cells(matchRow, 7).value ' Column G to Cell K4
         ostWS.Cells(1, 12).value = infoWS.Cells(matchRow, 1).value ' Column A to Cell K1
     End If
 End Sub
-
 Sub dataValuesToOstSheet(dataWs As Worksheet, ostWS As Worksheet)
     Dim lastRow As Long, i As Long, j As Long
     Dim otcCodeCol As Integer, otcDescCol As Integer, otcDebitCol As Integer, otcCreditCol As Integer
     Dim otcCode As String, otcDesc As String, matched As Boolean
     Dim debitValue As Double, creditValue As Double
     Dim credits() As Variant ' Declare the credits array
-
     ' Additional sums and counts declaration as before
-
     ' Find column indices
-    For i = 1 To dataWs.Cells(1, dataWs.Columns.Count).End(xlToLeft).Column
+    For i = 1 To dataWs.Cells(1, dataWs.Columns.count).End(xlToLeft).Column
         Select Case True
-            Case Left(dataWs.Cells(1, i).Value, 6) = "OTCODE": otcCodeCol = i
-            Case Left(dataWs.Cells(1, i).Value, 9) = "OTDESCRIP": otcDescCol = i
-            Case Left(dataWs.Cells(1, i).Value, 7) = "OTDEBIT": otcDebitCol = i
-            Case Left(dataWs.Cells(1, i).Value, 8) = "OTCREDIT": otcCreditCol = i
+            Case Left(dataWs.Cells(1, i).value, 6) = "OTCODE": otcCodeCol = i
+            Case Left(dataWs.Cells(1, i).value, 9) = "OTDESCRIP": otcDescCol = i
+            Case Left(dataWs.Cells(1, i).value, 7) = "OTDEBIT": otcDebitCol = i
+            Case Left(dataWs.Cells(1, i).value, 8) = "OTCREDIT": otcCreditCol = i
         End Select
     Next i
-
-    lastRow = dataWs.Cells(dataWs.Rows.Count, otcCodeCol).End(xlUp).Row
+    lastRow = dataWs.Cells(dataWs.Rows.count, otcCodeCol).End(xlUp).Row
     ReDim debits(1 To lastRow), descriptions(1 To lastRow), codes(1 To lastRow), credits(1 To lastRow) ' Include credits array
-
     ' Load data into arrays
     For i = 2 To lastRow
-        debits(i) = dataWs.Cells(i, otcDebitCol).Value
-        credits(i) = dataWs.Cells(i, otcCreditCol).Value ' Load credit values
-        descriptions(i) = LCase(dataWs.Cells(i, otcDescCol).Value)
-        codes(i) = dataWs.Cells(i, otcCodeCol).Value
+        debits(i) = dataWs.Cells(i, otcDebitCol).value
+        credits(i) = dataWs.Cells(i, otcCreditCol).value ' Load credit values
+        descriptions(i) = LCase(dataWs.Cells(i, otcDescCol).value)
+        codes(i) = dataWs.Cells(i, otcCodeCol).value
     Next i
-
     ' Process rows for sums and counts
     For i = 2 To lastRow
         debitValue = debits(i)
@@ -122,7 +117,6 @@ Sub dataValuesToOstSheet(dataWs As Worksheet, ostWS As Worksheet)
                 End If
             Next j
         End If
-
         ' Process based on OTCODE and OTDESCRIP
         If Not matched Or debitValue < 0 Then ' Include unmatched debits and all credits
             Select Case otcCode
@@ -158,27 +152,24 @@ Sub dataValuesToOstSheet(dataWs As Worksheet, ostWS As Worksheet)
             End Select
         End If
     Next i
-
     ' Output results to ostWS
-    ostWS.Cells(32, 12).Value = stayOverSum      
-    ostWS.Cells(32, 4).Value = stayOverCount     
-    ostWS.Cells(34, 12).Value = departureSum     
-    ostWS.Cells(34, 4).Value = departureCount    
-    ostWS.Cells(31, 12).Value = trashSum         
-    ostWS.Cells(31, 4).Value = trashCount        
+    ostWS.Cells(32, 12).value = stayOverSum
+    ostWS.Cells(32, 4).value = stayOverCount
+    ostWS.Cells(34, 12).value = departureSum
+    ostWS.Cells(34, 4).value = departureCount
+    ostWS.Cells(31, 12).value = trashSum
+    ostWS.Cells(31, 4).value = trashCount
     ' Additional outputs for other codes
-    ostWS.Cells(16, 12).Value = ohmcrfSum
-    ostWS.Cells(41, 12).Value = taxgrtSum
-    ostWS.Cells(10, 12).Value = incomeSum
-    ostWS.Cells(33, 12).Value = depclnSum
-    ostWS.Cells(33, 4).Value = depclnCount
-    ostWS.Cells(11, 12).Value = ownlsbSum
+    ostWS.Cells(16, 12).value = ohmcrfSum
+    ostWS.Cells(41, 12).value = taxgrtSum
+    ostWS.Cells(10, 12).value = incomeSum
+    ostWS.Cells(33, 12).value = depclnSum
+    ostWS.Cells(33, 4).value = depclnCount
+    ostWS.Cells(11, 12).value = ownlsbSum
 End Sub
-
 
 
 Function IsInArray(valToBeFound As Variant, arr As Variant) As Boolean
     IsInArray = Not IsError(Application.Match(valToBeFound, arr, 0))
 End Function
-
 
