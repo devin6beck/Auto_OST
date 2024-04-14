@@ -31,7 +31,7 @@ Sub WriteOstDataMonthNameToTemplate()
         sheetNameParts = Split(matchedSheet.Name, "_")
         monthName = sheetNameParts(0)
         
-        ThisWorkbook.Sheets("Template").Range("K7").value = monthName
+        ThisWorkbook.Sheets("Template").Range("L7").value = monthName
     ElseIf matchCount = 0 Then
         ' If no matching sheets found, show an error message
         MsgBox "Error: No OST_Data sheet found.", vbCritical
